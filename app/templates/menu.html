@@ -1,0 +1,15 @@
+<header>
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark flex-nowrap">
+        <span class="navbar-brand w-100">{{ title }}</span>
+        <div class="navbar-collapse collapse w-100 justify-content-center" id="navbar">
+            <ul class="navbar-nav mx-auto">
+                {% for item in menu %}
+                <li class="nav-item">
+                    <a class="nav-link text-light" href="{{ item.link }}">{{ item.text }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="w-100"><!--spacer--></div>
+    </nav>
+</header>

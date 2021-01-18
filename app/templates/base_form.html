@@ -1,0 +1,10 @@
+<form action="" method="post">
+    {{ context.form.csrf_token() }}
+    {% for field in context.form if field.name != 'csrf_token' %}
+    <div class="form-group">
+        <label>{{ field.description[0] }}</label>
+        {{ field(class="form-control", type="text", placeholder=field.description[1]) }}
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">{{ context.form.button_text }}</button>
+</form>

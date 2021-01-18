@@ -1,0 +1,147 @@
+from flask import render_template, redirect, send_from_directory, flash, g
+from app import app
+from app.forms import AddForm, DeleteForm
+from contextlib import closing
+from hashids import Hashids
+from time import time
+import sqlite3
+import os
+
+
+def connect_db():
+    return sqlite3.connect(app.config['DATABASE'])
+
+
+def init_db():
+    with closing(connect_db()) as db:
+        with app.open_resource('../schema.sql', 'r') as f:
+            db.cursor().executescript(f.read())
+        db.execute('insert into entries (full, alias, password) values (?, ?, ?)', ('', '', ''))
+        db.execute('insert into entries (full, alias, password) values (?, ?, ?)', ('', 'add', ''))
+        db.execute('insert into entries (full, alias, password) values (?, ?, ?)', ('', 'delete', ''))
+        db.commit()
+
+
+@app.before_request
+def before_request():
+    g.db = connect_db()
+
+
+@app.teardown_request
+def teardown_request(exception):
+    g.db.close()
+
+
+@app.context_processor
+def base_context():
+    context = dict()
+    context['menu'] = [
+        {'link': '/add', 'text': 'Создание'},
+        {'link': '/delete', 'text': 'Удаление'},
+    ]
+    context['title'] = 'ReDirector'
+    context['footer_text'] = '© Petr Kladov, 2021'
+    return context
+
+
+def my_scheduled_job():
+    db = connect_db()
+    db.execute('delete from entries where expiration < (?)', (int(time()),))
+    cur = db.execute('select seq from sqlite_sequence')
+    db.execute('update sqlite_sequence set seq = (?)', (int(cur.fetchall()[0][0]) - 1,))
+    db.commit()
+    db.close()
+
+
+@app.route('/<alias>')
+def direct(alias):
+    cur = g.db.execute('select full from entries where alias = (?)', (alias,))
+    data = cur.fetchall()
+    if data:
+        return redirect(data[0][0])
+    return page_not_found()
+
+
+@app.errorhandler(404)
+def page_not_found(error):
+    context = dict()
+    context['pagename'] = 'Ошибка 404'
+    return render_template('404.html', context=context), 404
+
+
+def check_alias(alias):
+    cur = g.db.execute('select id from entries where alias = (?)', (alias,))
+    return not cur.fetchall()
+
+
+def check_alias_sym(alias):
+    perm = '-._~:?#[]@!$&\'()*+,;='
+    for sym in alias:
+        if not sym.isalnum():
+            if sym not in perm:
+                return False
+    return True
+
+
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/add', methods=['GET', 'POST'])
+def add():
+    form = AddForm()
+    context = dict()
+    context['pagename'] = 'Создание новой ссылки'
+    context['form'] = form
+    if form.validate_on_submit():
+        alias = form.shorten_path.data
+        if alias == '':
+            cur = g.db.execute('select seq from sqlite_sequence')
+            id = cur.fetchall()[0][0]
+            while not check_alias(alias):
+                id += 1
+                hashid = Hashids(form.full.data)
+                alias = hashid.encode(id)
+            form.shorten_path.data = alias
+        else:
+            alias = alias.strip()
+            if len(alias) > 2048 - len('http://127.0.0.1:5000/'):
+                flash('Использовано слишком много символов, введите другой псевдоним', 'warning')
+                return render_template('add.html', context=context)
+            if not check_alias_sym(alias):
+                flash('Использованны запрещенные символы, введите другой псевдоним', 'warning')
+                return render_template('add.html', context=context)
+            if not check_alias(alias):
+                flash('Такой псевдоним уже существует, введите другой', 'warning')
+                return render_template('add.html', context=context)
+        g.db.execute('insert into entries (full, alias, password, expiration) values (?, ?, ?, ?)',
+                     (form.full.data, alias, form.password.data, int(time()) + 86400))
+        g.db.commit()
+        flash('Успешно создано, короткая ссылка - ' + 'http://127.0.0.1:5000/' + alias, 'success')
+    return render_template('add.html', context=context)
+
+
+@app.route('/delete', methods=['GET', 'POST'])
+def delete():
+    form = DeleteForm()
+    context = dict()
+    context['pagename'] = 'Удаление ссылки'
+    context['form'] = form
+    if form.validate_on_submit():
+        cur = g.db.execute('select password from entries where alias = (?)', (form.shorten_path.data,))
+        try:
+            password = str(cur.fetchall()[0][0])
+            if password == form.password.data:
+                g.db.execute('delete from entries where alias = (?)', (form.shorten_path.data,))
+                cur_seq = g.db.execute('select seq from sqlite_sequence')
+                ids = int(cur_seq.fetchall()[0][0]) - 1
+                g.db.execute('update sqlite_sequence set seq = (?)', (ids,))
+                g.db.commit()
+                flash('Успешное удаление', 'success')
+            else:
+                flash('Неверный пароль', 'danger')
+        except IndexError:
+            flash('Несуществующая ссылка', 'danger')
+    return render_template('delete.html', context=context)
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')

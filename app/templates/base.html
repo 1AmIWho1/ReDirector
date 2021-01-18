@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        {% include "base_css.html" %}
+        <title>{{ context.pagename }}</title>
+    </head>
+
+    <body>
+    {% include "menu.html" %}
+        <main role="main" class="container">
+            <div class="row mt-3">
+                <div class="col">
+                    <h1 class="text-center">
+                        {{ context.pagename }}
+                    </h1>
+                    <hr>
+                    {% block content %}
+                    {% endblock %}
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    <br>
+                    <ul class=flashes>
+                        {% for category, message in messages %}
+                        <li class="list-group-item list-group-item-{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <span class="muted">{{ footer_text }}</span>
+        </footer>
+    </body>
+
+</html>
