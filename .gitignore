@@ -237,3 +237,6 @@ $RECYCLE.BIN/
 
 # Database
 *.db
+
+# .idea
+.idea/
