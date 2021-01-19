@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
     <head>
         <meta charset="UTF-8">
         {% include "base_css.html" %}
@@ -11,9 +12,7 @@
         <main role="main" class="container">
             <div class="row mt-3">
                 <div class="col">
-                    <h1 class="text-center">
-                        {{ context.pagename }}
-                    </h1>
+                    <h1 class="text-center">{{ context.pagename }}</h1>
                     <hr>
                     {% block content %}
                     {% endblock %}
