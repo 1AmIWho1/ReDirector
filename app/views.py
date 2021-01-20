@@ -8,6 +8,8 @@ import sqlite3
 import os
 
 
+domen = 'http://127.0.0.1:5000/'
+
 path = {
     'favicon': 'favicon.ico',
     'index': '',
@@ -101,7 +103,7 @@ def add():
     context['pagename'] = 'Создание новой ссылки'
     context['form'] = form
     if form.validate_on_submit():
-        alias = form.shorten_path.data.strip()
+        alias = form.alias.data.strip()
         if alias == '':
             cur = g.db.execute('select seq from sqlite_sequence')
             id = cur.fetchone()[0]
@@ -113,7 +115,7 @@ def add():
                 if not check and check is not None:
                     break
         else:
-            if len(alias) > 2048 - len('http://127.0.0.1:5000/'):
+            if len(alias) > 2048 - len(domen):
                 flash('Использовано слишком много символов, введите другой псевдоним', 'warning')
                 return render_template('add.html', context=context)
             if check_alias_sym(alias):
@@ -130,7 +132,7 @@ def add():
         g.db.execute('insert into entries (full, alias, password, expiration) values (?, ?, ?, ?)',
                      (form.full.data, alias, form.password.data, int(time()) + 86400))
         g.db.commit()
-        flash('Успешно создано, короткая ссылка - ' + 'http://127.0.0.1:5000/' + alias, 'success')
+        flash('Успешно создано, короткая ссылка - ' + domen + alias, 'success')
     return render_template('add.html', context=context)
 
 
@@ -141,14 +143,14 @@ def delete():
     context['pagename'] = 'Удаление ссылки'
     context['form'] = form
     if form.validate_on_submit():
-        if form.shorten_path.data in path.values():
+        if form.alias.data in path.values():
             flash('Нельзя удалить ссылку, необходимую для работы сайта', 'danger')
             return render_template('delete.html', context=context)
-        cur = g.db.execute('select password from entries where alias = (?)', (form.shorten_path.data,))
+        cur = g.db.execute('select password from entries where alias = (?)', (form.alias.data,))
         try:
             password = str(cur.fetchall()[0][0])
             if password == form.password.data:
-                g.db.execute('delete from entries where alias = (?)', (form.shorten_path.data,))
+                g.db.execute('delete from entries where alias = (?)', (form.alias.data,))
                 cur_seq = g.db.execute('select seq from sqlite_sequence')
                 ids = int(cur_seq.fetchall()[0][0]) - 1
                 g.db.execute('update sqlite_sequence set seq = (?)', (ids,))
