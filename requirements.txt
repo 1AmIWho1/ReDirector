@@ -1,0 +1,6 @@
+flask
+hashids
+flask_wtf
+wtforms
+apscheduler
+
