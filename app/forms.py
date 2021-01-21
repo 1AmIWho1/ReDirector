@@ -16,3 +16,9 @@ class DeleteForm(FlaskForm):
     alias = StringField('alias', validators=[DataRequired()], description=['Введите сокращенную ссылку', 'Ссылка'])
     password = StringField('password', description=['Введите пароль (при наличии)', 'Пароль'])
     button_text = 'Удалить'
+
+
+class RefreshForm(FlaskForm):
+    alias = StringField('alias', validators=[DataRequired()], description=['Введите сокращенную ссылку', 'Ссылка'])
+    password = StringField('password', description=['Введите пароль (при наличии)', 'Пароль'])
+    button_text = 'Обновить'

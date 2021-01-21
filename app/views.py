@@ -1,6 +1,6 @@
 from flask import render_template, redirect, send_from_directory, flash, g
 from app import app
-from app.forms import AddForm, DeleteForm
+from app.forms import AddForm, DeleteForm, RefreshForm
 from contextlib import closing
 from hashids import Hashids
 from time import time
@@ -14,7 +14,8 @@ path = {
     'favicon': 'favicon.ico',
     'index': '',
     'add': 'add',
-    'delete': 'delete'
+    'delete': 'delete',
+    'refresh': 'refresh'
 }
 
 
@@ -45,8 +46,9 @@ def teardown_request(exception):
 def base_context():
     context = dict()
     context['menu'] = [
-        {'link': '/add', 'text': 'Создание'},
-        {'link': '/delete', 'text': 'Удаление'},
+        {'link': '/' + path['add'], 'text': 'Создание'},
+        {'link': '/' + path['delete'], 'text': 'Удаление'},
+        {'link': '/' + path['refresh'], 'text': 'Обновление'},
     ]
     context['title'] = 'ReDirector'
     context['footer_text'] = '© Petr Kladov, 2021'
@@ -164,6 +166,36 @@ def delete():
             flash('Несуществующая ссылка', 'danger')
             return render_template('delete.html', context=context)
     return render_template('delete.html', context=context)
+
+
+@app.route('/' + path['refresh'], methods=['GET', 'POST'])
+def refresh():
+    form = RefreshForm()
+    context = dict()
+    context['pagename'] = 'Обновление времени действия ссылки'
+    context['form'] = form
+    if form.validate_on_submit():
+        if form.alias.data in path.values():
+            flash('Нельзя обновить ссылку, необходимую для работы сайта', 'danger')
+            return render_template('refresh.html', context=context)
+        cur = g.db.execute('select password from entries where alias = (?)', (form.alias.data,))
+        try:
+            password = str(cur.fetchall()[0][0])
+            if password == form.password.data:
+                cur = g.db.execute('select expiration from entries where alias = (?)', (form.alias.data,))
+                exp = cur.fetchone()[0] + 86400
+                g.db.execute('update sqlite_sequence set seq = (?)', (exp,))
+                g.db.commit()
+                flash('Успешное обновлено, срок действия закончится через {}ч.'
+                      .format(int((exp - int(time()))/3600) + 1), 'success')
+                return render_template('refresh.html', context=context)
+            else:
+                flash('Неверный пароль', 'danger')
+                return render_template('refresh.html', context=context)
+        except IndexError:
+            flash('Несуществующая ссылка', 'danger')
+            return render_template('refresh.html', context=context)
+    return render_template('refresh.html', context=context)
 
 
 @app.route('/' + path['favicon'])
