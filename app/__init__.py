@@ -1,7 +1,7 @@
 from flask import Flask
-import os
-from config import DATABASE
 from apscheduler.schedulers.background import BackgroundScheduler
+import os
+import platform
 
 
 app = Flask(__name__)
@@ -9,7 +9,14 @@ app.config.from_object('config')
 
 from app import views
 
-if not os.path.isfile(DATABASE):
+
+if platform.system() == 'Linux':
+    if not os.path.exists(os.getcwd() + '/' + app.config['DATABASE']):
+        views.init_db()
+elif platform.system() == 'Windows':
+    if not os.path.exists(os.getcwd() + '\\' + app.config['DATABASE'].replace('/', '\\')):
+        views.init_db()
+else:
     views.init_db()
 
 sched = BackgroundScheduler(timezone='Europe/Moscow')

@@ -20,7 +20,7 @@ path = {
 
 
 def connect_db():
-    return sqlite3.connect(app.config['DATABASE'])
+    return sqlite3.connect(os.getcwd() + '/' + app.config['DATABASE'])
 
 
 def init_db():
