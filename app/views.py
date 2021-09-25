@@ -100,7 +100,7 @@ def check_alias_sym(alias):
 @app.route('/' + path['index'], methods=['GET', 'POST'])
 @app.route('/' + path['add'], methods=['GET', 'POST'])
 def add():
-    form = AddForm()
+    form = AddForm(exp_time=24)
     context = dict()
     context['pagename'] = 'Создание новой ссылки'
     context['form'] = form
@@ -131,10 +131,14 @@ def add():
             if exp is None:
                 flash('Такой псевдоним уже существует, срок действия неограничен, введите другой', 'warning')
                 return render_template('add.html', context=context)
+        exp_time = form.exp_time.data
+        if exp_time > 24 * 7:
+            flash('Нельзя создать псевдоним со сроком действия больше чем 7 дней', 'warning')
+            return render_template('add.html', context=context)
         g.db.execute('insert into entries (full, alias, password, expiration) values (?, ?, ?, ?)',
-                     (form.full.data, alias, form.password.data, int(time()) + 86400))
+                     (form.full.data, alias, form.password.data, int(time()) + exp_time * 3600))
         g.db.commit()
-        flash('Успешно создано, короткая ссылка - ' + domen + alias, 'success')
+        flash('Успешно создано, короткая ссылка - {}{}, истекает через {}ч.'.format(domen, alias, exp_time), 'success')
     return render_template('add.html', context=context)
 
 
@@ -170,7 +174,7 @@ def delete():
 
 @app.route('/' + path['refresh'], methods=['GET', 'POST'])
 def refresh():
-    form = RefreshForm()
+    form = RefreshForm(exp_time=24)
     context = dict()
     context['pagename'] = 'Обновление времени действия ссылки'
     context['form'] = form
@@ -178,16 +182,24 @@ def refresh():
         if form.alias.data in path.values():
             flash('Нельзя обновить ссылку, необходимую для работы сайта', 'danger')
             return render_template('refresh.html', context=context)
+        if form.exp_time.data > 24 * 7:
+            flash('Нельзя продлять ссылки больше чем на 7 дней', 'warning')
+            return render_template('refresh.html', context=context)
         cur = g.db.execute('select password from entries where alias = (?)', (form.alias.data,))
         try:
             password = str(cur.fetchall()[0][0])
             if password == form.password.data:
                 cur = g.db.execute('select expiration from entries where alias = (?)', (form.alias.data,))
-                exp = cur.fetchone()[0] + 86400
-                g.db.execute('update sqlite_sequence set seq = (?)', (exp,))
+                exp = cur.fetchone()[0]
+                if (exp - int(time()))//3600 > 24 * 7:
+                    flash('Нельзя продлять ссылки больше чем на 7 дней', 'warning')
+                    return render_template('refresh.html', context=context)
+                exp += form.exp_time.data * 3600
+                g.db.execute('update entries set expiration = (?) where alias = (?)', (exp, form.alias.data))
                 g.db.commit()
+                cur = g.db.execute('select expiration from entries where alias = (?)', (form.alias.data,))
                 flash('Успешное обновлено, срок действия закончится через {}ч.'
-                      .format(int((exp - int(time()))/3600) + 1), 'success')
+                      .format((cur.fetchone()[0] - int(time()))//3600), 'success')
                 return render_template('refresh.html', context=context)
             else:
                 flash('Неверный пароль', 'danger')
