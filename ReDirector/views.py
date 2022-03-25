@@ -1,6 +1,6 @@
 from flask import render_template, redirect, send_from_directory, flash, g
-from app import app
-from app.forms import AddForm, DeleteForm, RefreshForm
+from ReDirector import app
+from ReDirector.forms import AddForm, DeleteForm, RefreshForm
 from contextlib import closing
 from hashids import Hashids
 from time import time

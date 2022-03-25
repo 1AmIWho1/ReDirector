@@ -7,7 +7,7 @@ import platform
 app = Flask(__name__)
 app.config.from_object('config')
 
-from app import views
+from ReDirector import views
 
 
 if not os.path.exists(app.config['DATABASE']):
