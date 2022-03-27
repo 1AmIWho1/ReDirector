@@ -1,15 +1,16 @@
 from flask import render_template, redirect, send_from_directory, flash, g
 from flask import current_app as app
-from .forms import AddForm, DeleteForm, RefreshForm
 from hashids import Hashids
+from datetime import datetime as dt
 from time import time
 import os
 
-from datetime import datetime as dt
+from .forms import AddForm, DeleteForm, RefreshForm
 from .models import db, Alias
 
 
-domen = 'http://127.0.0.1:5000/'
+domen = 'http://localhost/'
+
 
 path = {
     'favicon': 'favicon.ico',
@@ -43,17 +44,10 @@ def page_not_found():
 @app.route('/<alias>')
 def direct(alias):
     a = Alias.query.filter(Alias.alias == alias).first()
+    print(a)
     if a:
         return redirect(str(a))
     return page_not_found()
-
-
-def check_alias(alias):
-    cur = g.db.execute('select expiration from entries where alias = (?)', (alias,))
-    exp = cur.fetchall()
-    if not exp:
-        return False
-    return exp[0][0]
 
 
 def check_alias_sym(alias):
@@ -75,45 +69,33 @@ def add():
     if form.validate_on_submit():
         alias = form.alias.data.strip()
         if alias == '':
-            return page_not_found()
-            #existing_alias = Alias.query.filter(Alias.alias == alias)
-            cur = g.db.execute('select seq from sqlite_sequence')
-            id = cur.fetchone()[0]
-            while True:
-                id += 1
+            i = 0
+            hashid = Hashids(form.full.data)
+            alias = hashid.encode(i)
+            existing_alias = Alias.query.filter(Alias.alias == alias).first()
+            while existing_alias:
+                i += 1
                 hashid = Hashids(form.full.data)
-                alias = hashid.encode(id)
-                check = check_alias(alias)
-                if not check and check is not None:
-                    break
+                alias = hashid.encode(i)
+                existing_alias = Alias.query.filter(Alias.alias == alias).first()
         else:
-            if len(alias) > 2048 - len(domen):
+            if len(alias) > 64:
                 flash('Использовано слишком много символов, введите другой псевдоним', 'warning')
                 return render_template('add.html', context=context)
             if check_alias_sym(alias):
                 flash('Использованны запрещенные символы, введите другой псевдоним', 'warning')
                 return render_template('add.html', context=context)
-            '''
-            exp = check_alias(alias)
-            if isinstance(exp, int) and not isinstance(exp, bool):
-                flash('Такой псевдоним уже существует, срок действия закончится через {}ч., '
-                      'введите другой'.format(int((exp - int(time()))/3600) + 1), 'warning')
+            existing_alias = Alias.query.filter(Alias.alias == alias).first()
+            if existing_alias:
+                flash('Такой псевдоним уже существует, срок действия закончится через n ч., '
+                      'введите другой', 'warning')
                 return render_template('add.html', context=context)
-            if exp is None:
-                flash('Такой псевдоним уже существует, срок действия неограничен, введите другой', 'warning')
-                return render_template('add.html', context=context)
-            '''
         exp_time = form.exp_time.data
         if exp_time > 24 * 7:
             flash('Нельзя создать псевдоним со сроком действия больше чем 7 дней', 'warning')
             return render_template('add.html', context=context)
-        '''
-        g.db.execute('insert into entries (full, alias, password, expiration) values (?, ?, ?, ?)',
-                     (form.full.data, alias, form.password.data, int(time()) + exp_time * 3600))
-        g.db.commit()
-        '''
         new_alias = Alias(full=form.full.data, alias=alias, password=form.password.data, created=dt.now())
-        db.session.add(new_alias)  # Adds new User record to database
+        db.session.add(new_alias)
         db.session.commit()
         flash('Успешно создано, короткая ссылка - {}{}, истекает через {}ч.'.format(domen, alias, exp_time), 'success')
     return render_template('add.html', context=context)
@@ -190,4 +172,3 @@ def refresh():
 @app.route('/' + path['favicon'])
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
-
