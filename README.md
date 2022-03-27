@@ -1,16 +1,17 @@
-# Проект "ReDirector"
+# ReDirector
 
-### Цель 
+### The goal
+To provide service 
 Предоставить пользователю сервис, на котором можно быстро создать сокращенную ссылку
 
-### Техническое задание
-Разработайте Flask-приложение, реализующее примитивный сервис сокращения ссылок. В минимальном исполнении сервис должен уметь:
+### Software requirements
+Develop Flask-application, providing simple link-shortening service. Minimum requirements:
 
-- добавлять новые ссылки и выдавать для них псевдонимы (короткие ссылки)
-- переадресовывать пользователя по зарегистрированным в системе псевдонимам
-- показывать страницу 404, если псевдоним не верен
+- add new links and create aliases for them (short links)
+- redirect user by aliases registered in the system
+- show 404 page if alias is not correct
 
-### Технологичеcкий стек:
+### Technological stack:
 - python
 - flask
 - wtforms
@@ -18,18 +19,24 @@
 - hashids
 - sqlite
 
-### Инструкция по настройке проекта:
-1. Склонировать проект
-2. Обновить pip: 
+### How to set up project:
+1. Clone repository:
+```bash
+git clone https://github.com/1AmIWho1/pent.git
+```
+2. Update pip: 
 ```bash
 pip install --upgrade pip
 ```
-3. Установить необходимые пакеты: 
+3. Install required packages: 
 ```bash
 pip install -r requirements.txt
 ```
-4. Настроить проект: в `config.py` при необходимости изменить `DEBUG` на `False` и записать секретный ключ в `SECRET_KEY`, указать доменное имя в `app/views.py` в переменной `domen`
-5. Запустить сервер:
+4. Customize projects to your needs: 
+- In `config.py` you may change `DEBUG` на `False`
+- In`config.py` write a secret key in variable `SECRET_KEY`
+- Set domen name in `app/views.py` in variable `domen`
+5. Run server:
 ```bash
 python run.py
 ```
