@@ -95,6 +95,7 @@ def add():
             flash('Нельзя создать псевдоним со сроком действия больше чем 7 дней', 'warning')
             return render_template('add.html', context=context)
         new_alias = Alias(full=form.full.data, alias=alias, password=form.password.data, created=dt.now())
+        print(type(new_alias))
         db.session.add(new_alias)
         db.session.commit()
         flash('Успешно создано, короткая ссылка - {}{}, истекает через {}ч.'.format(domen, alias, exp_time), 'success')
@@ -111,21 +112,19 @@ def delete():
         if form.alias.data in path.values():
             flash('Нельзя удалить ссылку, необходимую для работы сайта', 'danger')
             return render_template('delete.html', context=context)
-        cur = g.db.execute('select password from entries where alias = (?)', (form.alias.data,))
-        try:
-            password = str(cur.fetchall()[0][0])
+        res = db.session.query(Alias).filter(Alias.alias == form.alias.data)
+        if res.first():
+            a = res[0]
+            password = a.password
             if password == form.password.data:
-                g.db.execute('delete from entries where alias = (?)', (form.alias.data,))
-                cur_seq = g.db.execute('select seq from sqlite_sequence')
-                ids = int(cur_seq.fetchall()[0][0]) - 1
-                g.db.execute('update sqlite_sequence set seq = (?)', (ids,))
-                g.db.commit()
+                db.session.delete(a)
+                db.session.commit()
                 flash('Успешное удаление', 'success')
                 return render_template('delete.html', context=context)
             else:
                 flash('Неверный пароль', 'danger')
                 return render_template('delete.html', context=context)
-        except IndexError:
+        else:
             flash('Несуществующая ссылка', 'danger')
             return render_template('delete.html', context=context)
     return render_template('delete.html', context=context)
