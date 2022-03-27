@@ -1,8 +1,7 @@
 # ReDirector
 
 ### The goal
-To provide service 
-Предоставить пользователю сервис, на котором можно быстро создать сокращенную ссылку
+To provide link-shortening service 
 
 ### Software requirements
 Develop Flask-application, providing simple link-shortening service. Minimum requirements:
