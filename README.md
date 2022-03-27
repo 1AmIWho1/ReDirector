@@ -38,5 +38,5 @@ pip install -r requirements.txt
 - Set domen name in `app/views.py` in variable `domen`
 5. Run server:
 ```bash
-python run.py
+python wsgi.py
 ```

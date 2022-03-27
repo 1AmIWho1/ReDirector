@@ -237,6 +237,7 @@ $RECYCLE.BIN/
 
 # Database
 *.db
+*.sqlite3
 
 # .idea
 .idea/
