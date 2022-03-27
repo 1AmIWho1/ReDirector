@@ -95,7 +95,6 @@ def add():
             flash('Нельзя создать псевдоним со сроком действия больше чем 7 дней', 'warning')
             return render_template('add.html', context=context)
         new_alias = Alias(full=form.full.data, alias=alias, password=form.password.data, created=dt.now())
-        print(type(new_alias))
         db.session.add(new_alias)
         db.session.commit()
         flash('Успешно создано, короткая ссылка - {}{}, истекает через {}ч.'.format(domen, alias, exp_time), 'success')
