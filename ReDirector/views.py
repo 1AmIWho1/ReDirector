@@ -1,7 +1,7 @@
 from flask import render_template, redirect, send_from_directory, flash, g
 from flask import current_app as app
 from hashids import Hashids
-from datetime import datetime as dt
+import datetime as dt
 from time import time
 import os
 
@@ -44,7 +44,6 @@ def page_not_found():
 @app.route('/<alias>')
 def direct(alias):
     a = Alias.query.filter(Alias.alias == alias).first()
-    print(a)
     if a:
         return redirect(str(a))
     return page_not_found()
@@ -87,17 +86,17 @@ def add():
                 return render_template('add.html', context=context)
             existing_alias = Alias.query.filter(Alias.alias == alias).first()
             if existing_alias:
-                flash('Такой псевдоним уже существует, срок действия закончится через n ч., '
-                      'введите другой', 'warning')
+                flash('Такой псевдоним уже существует, срок действия закончится {}, '
+                      'введите другой'.format(existing_alias.expiration), 'warning')
                 return render_template('add.html', context=context)
-        exp_time = form.exp_time.data
-        if exp_time > 24 * 7:
+        if form.exp_time.data > 24 * 7:
             flash('Нельзя создать псевдоним со сроком действия больше чем 7 дней', 'warning')
             return render_template('add.html', context=context)
-        new_alias = Alias(full=form.full.data, alias=alias, password=form.password.data, created=dt.now())
+        new_alias = Alias(full=form.full.data, alias=alias, password=form.password.data,
+                          expiration=dt.datetime.now() + dt.timedelta(hours=form.exp_time.data))
         db.session.add(new_alias)
         db.session.commit()
-        flash('Успешно создано, короткая ссылка - {}{}, истекает через {}ч.'.format(domen, alias, exp_time), 'success')
+        flash('Успешно создано, короткая ссылка - {}{}, истекает через {}ч.'.format(domen, alias, form.exp_time.data), 'success')
     return render_template('add.html', context=context)
 
 
@@ -142,26 +141,22 @@ def refresh():
         if form.exp_time.data > 24 * 7:
             flash('Нельзя продлять ссылки больше чем на 7 дней', 'warning')
             return render_template('refresh.html', context=context)
-        cur = g.db.execute('select password from entries where alias = (?)', (form.alias.data,))
-        try:
-            password = str(cur.fetchall()[0][0])
-            if password == form.password.data:
-                cur = g.db.execute('select expiration from entries where alias = (?)', (form.alias.data,))
-                exp = cur.fetchone()[0]
-                if (exp - int(time()))//3600 > 24 * 7:
+        res = db.session.query(Alias).filter(Alias.alias == form.alias.data)
+        if res.first():
+            a = res[0]
+            if a.password == form.password.data:
+                tmp = dt.timedelta(hours=form.exp_time.data)
+                if form.exp_time.data > 24 * 7 or (a.expiration + tmp - dt.datetime.now()).seconds // 3600 > 24 * 7:
                     flash('Нельзя продлять ссылки больше чем на 7 дней', 'warning')
                     return render_template('refresh.html', context=context)
-                exp += form.exp_time.data * 3600
-                g.db.execute('update entries set expiration = (?) where alias = (?)', (exp, form.alias.data))
-                g.db.commit()
-                cur = g.db.execute('select expiration from entries where alias = (?)', (form.alias.data,))
-                flash('Успешное обновлено, срок действия закончится через {}ч.'
-                      .format((cur.fetchone()[0] - int(time()))//3600), 'success')
+                a.expiration = dt.datetime.now() + tmp
+                db.session.commit()
+                flash('Успешное обновлено, срок действия закончится {}'.format(a.expiration), 'success')
                 return render_template('refresh.html', context=context)
             else:
                 flash('Неверный пароль', 'danger')
                 return render_template('refresh.html', context=context)
-        except IndexError:
+        else:
             flash('Несуществующая ссылка', 'danger')
             return render_template('refresh.html', context=context)
     return render_template('refresh.html', context=context)

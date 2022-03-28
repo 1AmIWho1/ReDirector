@@ -8,7 +8,7 @@ class Alias(db.Model):
     full = db.Column(db.String(64), index=False, unique=False, nullable=False)
     alias = db.Column(db.String(64), index=False, unique=True, nullable=False)
     password = db.Column(db.String(64), index=False, unique=False, nullable=True)
-    created = db.Column(db.DateTime, index=False, unique=False, nullable=False)
+    expiration = db.Column(db.DateTime, index=False, unique=False, nullable=False)
 
     def __repr__(self):
         return "{}".format(self.full)
