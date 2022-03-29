@@ -143,10 +143,10 @@ def refresh():
             a = res[0]
             if a.password == form.password.data:
                 tmp = dt.timedelta(hours=form.exp_time.data)
-                if form.exp_time.data > 24 * 7 or (a.expiration + tmp - dt.datetime.now()).seconds // 3600 > 24 * 7:
+                if form.exp_time.data > 24 * 7 or (a.expiration + tmp - dt.datetime.now()).days > 7:
                     flash('Нельзя продлять ссылки больше чем на 7 дней', 'warning')
                     return render_template('refresh.html', context=context)
-                a.expiration = dt.datetime.now() + tmp
+                a.expiration += tmp
                 db.session.commit()
                 flash('Успешное обновлено, срок действия закончится {}'.format(a.expiration), 'success')
                 return render_template('refresh.html', context=context)
