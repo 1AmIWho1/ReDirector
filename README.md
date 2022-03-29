@@ -31,11 +31,8 @@ pip install --upgrade pip
 ```bash
 pip install -r requirements.txt
 ```
-4. Customize projects to your needs: 
-- In `config.py` you may change `DEBUG` на `False`
-- In`config.py` write a secret key in variable `SECRET_KEY`
-- Set domen name in `app/views.py` in variable `domen`
+4. Create your own `.env` (you may use `.env.example`)
 5. Run server:
 ```bash
-python run.py
+python wsgi.py
 ```

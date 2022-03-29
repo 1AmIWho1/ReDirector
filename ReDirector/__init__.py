@@ -1,19 +1,33 @@
 from flask import Flask
-from apscheduler.schedulers.background import BackgroundScheduler
-import os
-import platform
+from flask_sqlalchemy import SQLAlchemy
+from flask_apscheduler import APScheduler
+from datetime import datetime as dt
 
 
-app = Flask(__name__)
-app.config.from_object('config')
-
-from ReDirector import views
+db = SQLAlchemy()
+scheduler = APScheduler()
 
 
-if not os.path.exists(app.config['DATABASE']):
-    views.init_db()
+@scheduler.task('interval', id='delete', minutes=1)
+def delete_expired_aliases():
+    from . import models
+    expired = db.session.query(models.Alias).filter(models.Alias.expiration <= dt.now()).all()
+    for alias in expired:
+        db.session.delete(alias)
+    db.session.commit()
 
 
-sched = BackgroundScheduler(timezone='Europe/Moscow')
-sched.add_job(views.my_scheduled_job, 'interval', hours=1)
-sched.start()
+def create_app():
+    app = Flask(__name__, instance_relative_config=False)
+    app.config.from_object('config.Config')
+
+    db.init_app(app)
+    scheduler.init_app(app)
+    scheduler.start()
+
+    with app.app_context():
+        from . import views
+        db.create_all()
+    db.app = app
+
+    return app
