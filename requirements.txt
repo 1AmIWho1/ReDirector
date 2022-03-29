@@ -4,3 +4,4 @@ flask_wtf
 wtforms~=2.3.3
 flask-apscheduler~=1.12.3
 python-dotenv~=0.20.0
+flask-sqlalchemy~=2.5.1
