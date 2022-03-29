@@ -12,9 +12,8 @@ def create_app():
     db.init_app(app)
 
     with app.app_context():
-        from . import views  # Import routes
-        db.create_all()  # Create sql tables for our data models
-
+        from . import views
+        db.create_all()
         return app
 
 '''

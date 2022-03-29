@@ -1,15 +1,11 @@
-from flask import render_template, redirect, send_from_directory, flash, g
+from flask import render_template, redirect, send_from_directory, flash, request
 from flask import current_app as app
 from hashids import Hashids
 import datetime as dt
-from time import time
 import os
 
 from .forms import AddForm, DeleteForm, RefreshForm
 from .models import db, Alias
-
-
-domen = 'http://localhost/'
 
 
 path = {
@@ -96,7 +92,8 @@ def add():
                           expiration=dt.datetime.now() + dt.timedelta(hours=form.exp_time.data))
         db.session.add(new_alias)
         db.session.commit()
-        flash('Успешно создано, короткая ссылка - {}{}, истекает через {}ч.'.format(domen, alias, form.exp_time.data), 'success')
+        flash('Успешно создано, короткая ссылка - {}{}, '
+              'истекает через {}ч.'.format(request.host_url, alias, form.exp_time.data), 'success')
     return render_template('add.html', context=context)
 
 
