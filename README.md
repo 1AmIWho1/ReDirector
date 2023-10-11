@@ -19,7 +19,7 @@ Develop Flask-application, providing simple link-shortening service. Minimum req
 - sqlite
 
 ### How to set up project:
-**Runs obnly in Windows**
+**Runs only in Windows**
 1. Clone repository:
 ```bash
 git clone https://github.com/1AmIWho1/pent.git
