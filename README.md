@@ -1,6 +1,6 @@
 # ReDirector
 
-### The goal
+### Goal
 To provide link-shortening service 
 
 ### Software requirements
